@@ -33,7 +33,7 @@ class EPAEnvironmentalData(BaseModel):
 class ProjectBase(BaseModel):
     """Base schema for project data"""
     projectName: str = Field(..., description="Name of the project")
-    location: str = Field(..., description="ZIP code of the project location")
+    location: str = Field(..., description="Project location")
     projectType: str = Field(..., description="Type of renewable energy project")
     surveyResponses: Dict[str, str] = Field(
         ..., 
@@ -41,16 +41,17 @@ class ProjectBase(BaseModel):
     )
 
     @validator('location')
-    def validate_zip_code(cls, v):
-        if not re.match(r'^\d{5}(-\d{4})?$', v):
-            raise ValueError('Invalid ZIP code format - must be 5 digits or 5+4 format')
-        return v
+    def validate_location(cls, v):
+        # Basic non-empty validation
+        if not v or len(v.strip()) == 0:
+            raise ValueError('Location cannot be empty')
+        return v.strip()
 
     model_config = {
         "json_schema_extra": {
             "example": {
                 "projectName": "Solar Farm Alpha",
-                "location": "12345",
+                "location": "New York, NY",
                 "projectType": "solar_utility",
                 "surveyResponses": {"1": "A", "2": "B"}
             }

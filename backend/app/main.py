@@ -6,7 +6,7 @@ from typing import List
 from . import models, schemas
 from .database import SessionLocal, engine
 from .scoring import ESGScorer
-from .epa_data import EPADataService
+
 # Create database tables
 models.Base.metadata.create_all(bind=engine)
 
@@ -27,6 +27,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 # Dependency
 def get_db():
     db = SessionLocal()
@@ -72,6 +73,7 @@ async def analyze_project(project: schemas.ProjectCreate):
             status_code=500,
             detail=f"An error occurred while analyzing the project: {str(e)}"
         )
+
 @app.post("/projects/", response_model=schemas.ProjectResponse)
 async def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
     try:

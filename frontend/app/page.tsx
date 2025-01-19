@@ -9,20 +9,40 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Create an API service for data fetching
 async function analyzeProject(projectData: ProjectData) {
-  const response = await fetch('http://localhost:8000/projects/analyze', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(projectData),
-  });
+  try {
+    const response = await fetch('http://localhost:8000/projects/analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(projectData),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to analyze project');
+    if (!response.ok) {
+      // Try to parse error details, but have a fallback
+      let errorDetails = 'Failed to analyze project';
+      try {
+        const errorResponse = await response.text();
+        errorDetails = errorResponse || 'Unknown error occurred';
+      } catch {
+        // If parsing fails, use default error message
+      }
+
+      throw new Error(errorDetails);
+    }
+
+    return response.json();
+  } catch (error) {
+    // Log the full error for debugging
+    console.error('API call error:', error);
+    
+    // Throw a user-friendly error message
+    throw new Error(
+      error instanceof Error 
+        ? error.message 
+        : 'An unexpected error occurred while analyzing the project'
+    );
   }
-
-  return response.json();
 }
 
 export default function Home() {
