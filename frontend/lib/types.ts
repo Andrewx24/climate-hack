@@ -57,10 +57,28 @@ export interface SurveyResponse {
   
   // Complete ESG assessment result
   export interface ESGScores {
-    scores: ESGCategoryScores;
+    scores: {
+        standard_esg: number;
+        european_esg: number;
+        us_esg: number;
+        community_engagement: number;
+        total: number;
+    };
     recommendations: string[];
     risks: string[];
-  }
+}
+export const validateProjectData = (data: ProjectData): boolean => {
+    return (
+        typeof data.projectName === 'string' && 
+        data.projectName.length > 0 &&
+        typeof data.location === 'string' && 
+        data.location.length > 0 &&
+        typeof data.projectType === 'string' &&
+        data.projectType.length > 0 &&
+        typeof data.surveyResponses === 'object' &&
+        Object.values(data.surveyResponses).every(v => v === 'A' || v === 'B' || v === '')
+    );
+};
   
   // Survey structure
   export interface SurveySection {

@@ -1,115 +1,129 @@
-from typing import Dict, List, Tuple
+# app/scoring.py
 
 class ESGScorer:
     def __init__(self):
-        self.category_weights = {
+        self.weights = {
             'standard_esg': {
-                'weight': 0.3,
-                'questions': range(1, 16),
-                'subcategories': {
-                    'basic_compliance': {'questions': range(1, 6), 'weight': 0.4},
-                    'management_systems': {'questions': range(6, 11), 'weight': 0.3},
-                    'reporting': {'questions': range(11, 16), 'weight': 0.3}
+                'weight': 0.35,
+                'questions': range(1, 16),  # Questions 1-15
+                'categories': {
+                    'basic_compliance': {'questions': [1, 2, 3, 4, 5], 'weight': 0.4},
+                    'environmental_practices': {'questions': [6, 7, 8, 9, 10], 'weight': 0.3},
+                    'governance': {'questions': [11, 12, 13, 14, 15], 'weight': 0.3}
                 }
             },
             'european_esg': {
-                'weight': 0.2,
-                'questions': range(16, 22),
-                'subcategories': {
-                    'taxonomy_alignment': {'questions': range(16, 18), 'weight': 0.4},
-                    'reporting_requirements': {'questions': range(18, 20), 'weight': 0.3},
-                    'green_deal': {'questions': range(20, 22), 'weight': 0.3}
+                'weight': 0.25,
+                'questions': range(16, 22),  # Questions 16-21
+                'categories': {
+                    'eu_taxonomy': {'questions': [16, 17], 'weight': 0.4},
+                    'sustainability_reporting': {'questions': [18, 19], 'weight': 0.3},
+                    'stakeholder_engagement': {'questions': [20, 21], 'weight': 0.3}
                 }
             },
             'us_esg': {
-                'weight': 0.3,
-                'questions': range(22, 32),
-                'subcategories': {
-                    'environmental': {'questions': range(22, 26), 'weight': 0.4},
-                    'social': {'questions': range(26, 28), 'weight': 0.3},
-                    'governance': {'questions': range(28, 32), 'weight': 0.3}
+                'weight': 0.25,
+                'questions': range(22, 32),  # Questions 22-31
+                'categories': {
+                    'environmental': {'questions': [22, 23, 24, 25], 'weight': 0.4},
+                    'social': {'questions': [26, 27], 'weight': 0.3},
+                    'governance': {'questions': [28, 29, 30, 31], 'weight': 0.3}
                 }
             },
             'community_engagement': {
-                'weight': 0.2,
-                'questions': range(32, 36),
-                'subcategories': {
-                    'outreach': {'questions': range(32, 34), 'weight': 0.5},
-                    'communication': {'questions': range(34, 36), 'weight': 0.5}
+                'weight': 0.15,
+                'questions': range(32, 36),  # Questions 32-35
+                'categories': {
+                    'public_engagement': {'questions': [32, 33], 'weight': 0.5},
+                    'communication': {'questions': [34, 35], 'weight': 0.5}
                 }
             }
         }
 
-    def calculate_category_score(self, responses: Dict[str, str], questions: range) -> float:
-        """Calculate score for a specific category or subcategory"""
-        total_questions = len(questions)
-        if total_questions == 0:
-            return 0
-        
-        positive_responses = sum(1 for q in questions if str(q) in responses and responses[str(q)] == 'A')
-        return (positive_responses / total_questions) * 100
+    def calculate_scores(self, survey_responses: dict) -> dict:
+        """Calculate ESG scores based on survey responses"""
+        try:
+            scores = {}
+            total_score = 0
 
-    def calculate_scores(self, responses: Dict[str, str]) -> Dict[str, float]:
-        """Calculate scores for all categories"""
-        scores = {}
-        total_score = 0
+            # Convert string question IDs to integers
+            responses = {int(k): v for k, v in survey_responses.items()}
 
-        for category, config in self.category_weights.items():
+            for category, config in self.weights.items():
+                category_score = self._calculate_category_score(responses, config)
+                scores[category] = round(category_score, 2)
+                total_score += category_score * config['weight']
+
+            scores['total'] = round(total_score, 2)
+            return scores
+        except Exception as e:
+            print(f"Error in calculate_scores: {str(e)}")
+            raise
+
+    def _calculate_category_score(self, responses: dict, config: dict) -> float:
+        """Calculate score for a specific category"""
+        try:
             category_score = 0
-            for subcategory, subconfig in config['subcategories'].items():
-                sub_score = self.calculate_category_score(responses, subconfig['questions'])
-                category_score += sub_score * subconfig['weight']
-            
-            scores[category] = category_score
-            total_score += category_score * config['weight']
+            for subcategory, subconfig in config['categories'].items():
+                subcategory_score = 0
+                relevant_questions = subconfig['questions']
+                answered_questions = 0
 
-        scores['total'] = total_score
-        return scores
+                for question in relevant_questions:
+                    if question in responses:
+                        if responses[question] == 'A':
+                            subcategory_score += 1
+                        answered_questions += 1
 
-    def generate_recommendations(self, scores: Dict[str, float]) -> List[str]:
+                if answered_questions > 0:
+                    subcategory_score = (subcategory_score / answered_questions) * 100
+                    category_score += subcategory_score * subconfig['weight']
+
+            return category_score
+        except Exception as e:
+            print(f"Error in _calculate_category_score: {str(e)}")
+            raise
+
+    def generate_recommendations(self, scores: dict) -> list:
         """Generate recommendations based on scores"""
         recommendations = []
-        
-        # Standard ESG recommendations
+
         if scores['standard_esg'] < 70:
             recommendations.append(
-                "Improve basic ESG compliance measures and establish stronger management systems"
+                "Improve basic ESG compliance measures, including materials recycling and workforce development programs."
             )
-        
-        # European ESG recommendations
+
         if scores['european_esg'] < 70:
             recommendations.append(
-                "Enhance alignment with EU Taxonomy and strengthen reporting mechanisms"
+                "Enhance alignment with EU Taxonomy and CSRD reporting requirements."
             )
-        
-        # US ESG recommendations
+
         if scores['us_esg'] < 70:
             recommendations.append(
-                "Strengthen environmental and social impact measures to meet US standards"
+                "Strengthen environmental and social impact measures to meet US standards."
             )
-        
-        # Community engagement recommendations
+
         if scores['community_engagement'] < 70:
             recommendations.append(
-                "Develop more robust community engagement and communication strategies"
+                "Develop more robust community engagement and communication strategies."
             )
-        
+
         return recommendations
 
-    def identify_risks(self, scores: Dict[str, float]) -> List[str]:
+    def identify_risks(self, scores: dict) -> list:
         """Identify risk factors based on scores"""
         risks = []
-        
+
         if scores['standard_esg'] < 50:
-            risks.append("Critical ESG compliance gaps present significant risk")
-            
+            risks.append("Critical ESG compliance gaps may affect project viability")
+
         if scores['european_esg'] < 50:
-            risks.append("Non-compliance with EU standards may affect funding eligibility")
-            
+            risks.append("Limited alignment with EU standards may restrict funding options")
+
         if scores['us_esg'] < 50:
             risks.append("Below-standard US ESG practices pose regulatory risks")
-            
+
         if scores['community_engagement'] < 50:
-            risks.append("Poor community engagement may lead to project opposition")
-            
+            risks.append("Insufficient community engagement may lead to project opposition")
+
         return risks
